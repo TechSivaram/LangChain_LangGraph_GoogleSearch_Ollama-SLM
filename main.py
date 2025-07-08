@@ -211,18 +211,20 @@ async def new_session_for_user(
     Creates a new chat session linked to the current authenticated user.
     """
     session_id = str(uuid.uuid4())
-    default_session_name = f"New Chat - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
+    
+    # Removed the line below which was generating the timestamp in the name:
+    # default_session_name = f"New Chat - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
     
     db_session = DBSession(
         id=session_id,
         user_id=current_user.id, # Link session to the authenticated user
-        name=default_session_name
+        name="New Chat" # Explicitly set the name to "New Chat"
     )
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
     
-    print(f"New session created for user {current_user.username}: {session_id} with name '{default_session_name}'")
+    print(f"New session created for user {current_user.username}: {session_id} with name '{db_session.name}'")
     return db_session
 
 
@@ -386,6 +388,8 @@ async def chat_with_ollama_user_isolated(
                     ai_response_content = msg.content
                     break
         else:
+            # Fallback if the structure is unexpected
+            ai_response_content = "I couldn't process that request or find a clear answer."
             print("Warning: LangGraph agent did not return a valid AI message in final_state.")
 
     except Exception as e:

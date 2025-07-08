@@ -3,18 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Q&A System</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
+    <title>AI Chat Assistant</title> <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"> <style>
+        :root {
+            /* Color Palette */
+            --primary-color: #4CAF50; /* Green - for highlights, active states */
+            --primary-dark: #388E3C; /* Darker green */
+            --secondary-color: #007bff; /* Blue - for general actions */
+            --secondary-dark: #0056b3; /* Darker blue */
+            --background-light: #f7f9fc; /* Light background for main content */
+            --background-dark: #2c3e50; /* Dark background for sidebar */
+            --text-dark: #333; /* Main text color */
+            --text-light: #f0f0f0; /* Text on dark backgrounds */
+            --border-color: #e0e0e0; /* Light borders */
+            --message-user-bg: #DCF8C6; /* Light green for user messages */
+            --message-ai-bg: #E6E6E6; /* Light grey for AI messages */
+            --shadow-light: rgba(0, 0, 0, 0.1);
+            --shadow-medium: rgba(0, 0, 0, 0.2);
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif; /* Use Roboto font */
             margin: 0;
             display: flex;
             height: 100vh;
-            background-color: #f4f4f4;
-            color: #333;
+            background-color: var(--background-light);
+            color: var(--text-dark);
             overflow: hidden; /* Prevent body scroll */
         }
+
+        /* --- Auth Container --- */
         .auth-container {
             display: flex;
             flex-direction: column;
@@ -22,7 +40,7 @@
             justify-content: center;
             width: 100%;
             height: 100%;
-            background-color: #e0e0e0;
+            background-color: var(--background-light);
             position: absolute;
             top: 0;
             left: 0;
@@ -30,197 +48,263 @@
         }
         .auth-form {
             background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            width: 350px;
+            padding: 40px; /* Increased padding */
+            border-radius: 12px; /* Softer corners */
+            box-shadow: 0 8px 25px var(--shadow-medium); /* More prominent shadow */
+            width: 400px; /* Slightly wider form */
+            max-width: 90%;
             text-align: center;
+            border: 1px solid var(--border-color); /* Subtle border */
         }
         .auth-form h2 {
-            margin-bottom: 25px;
-            color: #4CAF50;
+            margin-bottom: 30px; /* More space */
+            color: var(--primary-color);
+            font-size: 2em; /* Larger title */
+            font-weight: 500;
         }
         .auth-form input[type="text"],
         .auth-form input[type="password"] {
-            width: calc(100% - 22px);
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1em;
+            width: calc(100% - 24px); /* Account for padding */
+            padding: 14px; /* More padding */
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px; /* Softer corners */
+            font-size: 1.1em; /* Slightly larger text */
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .auth-form input[type="text"]:focus,
+        .auth-form input[type="password"]:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Focus glow */
+            outline: none;
         }
         .auth-form button {
             width: 100%;
-            padding: 12px;
-            background-color: #007bff;
+            padding: 15px; /* More padding */
+            background-color: var(--secondary-color);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px; /* Softer corners */
             cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s ease;
+            font-size: 1.1em;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
         .auth-form button:hover {
-            background-color: #0056b3;
+            background-color: var(--secondary-dark);
+            transform: translateY(-2px); /* Subtle lift effect */
+        }
+        .auth-form button:active {
+            transform: translateY(0);
         }
         .auth-toggle {
-            margin-top: 15px;
-            font-size: 0.9em;
+            margin-top: 20px;
+            font-size: 0.95em;
             color: #666;
         }
         .auth-toggle a {
-            color: #007bff;
+            color: var(--secondary-color);
             cursor: pointer;
             text-decoration: none;
+            font-weight: 500;
         }
         .auth-toggle a:hover {
             text-decoration: underline;
         }
         #authMessage {
-            color: red;
-            margin-bottom: 10px;
-            font-size: 0.9em;
+            color: red; /* Error messages still red */
+            margin-bottom: 15px;
+            font-size: 0.95em;
+            font-weight: 400;
         }
-        /* Styles for Sidebar Header */
+
+        /* --- Sidebar Header --- */
         .sidebar-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px; /* More space */
             padding-bottom: 15px;
-            border-bottom: 1px solid #555;
+            border-bottom: 1px solid #444; /* Slightly lighter border on dark background */
         }
         .sidebar-header h2 {
             margin: 0;
-            font-size: 1.6em;
-            color: #4CAF50;
+            font-size: 1.8em; /* Slightly larger title */
+            color: var(--primary-color);
             white-space: nowrap;
+            font-weight: 700;
         }
-        .user-info {
+
+        /* --- User Details Section --- */
+        .user-details-section {
             display: flex;
             flex-direction: column;
-            align-items: flex-end;
-            gap: 5px;
+            align-items: center;
+            gap: 10px; /* Space between elements */
+            margin-bottom: 20px; /* Space before new chat button */
+            padding: 15px;
+            background-color: #3b506b; /* Slightly lighter background than sidebar */
+            border-radius: 8px;
+            box-shadow: 0 2px 5px var(--shadow-medium);
         }
         #loggedInUser {
-            font-size: 0.85em;
-            color: #ccc;
+            font-size: 0.9em; /* Keep it compact */
+            color: var(--text-light);
             margin: 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 150px;
+            max-width: 100%; /* Ensure it fits within the section */
+            font-weight: 300;
         }
         #logoutBtn {
-            background-color: #dc3545;
-            padding: 5px 10px;
+            background-color: #dc3545; /* Red for logout */
+            padding: 8px 15px; /* Slightly larger padding */
             border-radius: 5px;
-            font-size: 0.8em;
+            font-size: 0.9em;
             cursor: pointer;
             border: none;
             color: white;
             white-space: nowrap;
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
         #logoutBtn:hover {
             background-color: #c82333;
+            transform: translateY(-1px);
+        }
+        #logoutBtn:active {
+            transform: translateY(0);
         }
 
-        /* Sidebar and Session List */
+        /* --- Sidebar and Session List --- */
         .sidebar {
-            width: 280px;
-            background-color: #333;
-            color: white;
-            padding: 20px;
+            width: 300px; /* Wider sidebar */
+            background-color: var(--background-dark);
+            color: var(--text-light);
+            padding: 25px; /* More padding */
             display: flex;
             flex-direction: column;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+            box-shadow: 2px 0 10px var(--shadow-medium); /* Deeper shadow */
             overflow-y: auto;
             flex-shrink: 0;
         }
         .sidebar-button {
             width: 100%;
-            padding: 12px;
-            margin-bottom: 15px;
-            background-color: #007bff;
+            padding: 14px; /* More padding */
+            margin-bottom: 20px; /* More space */
+            background-color: var(--primary-color); /* Green for new chat */
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px; /* Softer corners */
             cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s ease;
+            font-size: 1.05em;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 5px var(--shadow-light); /* Subtle shadow */
         }
         .sidebar-button:hover {
-            background-color: #0056b3;
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        .sidebar-button:active {
+            transform: translateY(0);
         }
         .session-list {
             list-style: none;
             padding: 0;
             flex-grow: 1;
+            margin-top: 10px; /* Space from button */
         }
         .session-item {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 10px;
-            margin-bottom: 8px;
-            background-color: #555;
-            border-radius: 5px;
+            align-items: center; /* Align items vertically in center */
+            padding: 14px 15px; /* More padding */
+            margin-bottom: 10px; /* More space between items */
+            background-color: #3b506b; /* Slightly lighter shade for items */
+            border-radius: 8px; /* Softer corners */
             cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
             position: relative; /* Needed for dropdown positioning */
             z-index: auto; /* Default z-index for list items */
+            font-size: 0.95em;
+            color: var(--text-light);
+            flex-wrap: wrap; /* Allow wrapping for timestamp when shown */
         }
         .session-item:hover {
-            background-color: #666;
-            transform: translateX(3px);
+            background-color: #4a6582; /* Darker hover */
+            transform: translateY(-2px); /* Subtle lift */
+            box-shadow: 0 4px 10px var(--shadow-medium);
         }
-        .session-item.active-dropdown { /* New class for active dropdown item */
+        .session-item.active-dropdown { /* Class for active dropdown item */
             z-index: 10; /* Bring the current item to the front */
+            background-color: #4a6582; /* Keep active state when dropdown is open */
+            box-shadow: 0 4px 10px var(--shadow-medium);
         }
         .session-item.active {
-            background-color: #4CAF50;
-            font-weight: bold;
+            background-color: var(--primary-color); /* Green for active session */
+            font-weight: 500;
+            transform: translateY(-2px); /* Lift even if just active */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+        .session-item.active:hover {
+            background-color: var(--primary-dark); /* Darker green on hover */
         }
         .session-name {
-            flex-grow: 1;
+            flex-grow: 1; /* Allows name to take available space */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            padding-right: 5px;
+            padding-right: 10px; /* Space between name and kebab */
+            font-weight: 400;
+            font-size: 0.9em;
+            /* No order property here to allow natural flow with kebab */
+        }
+        .session-timestamp {
+            font-size: 0.75em; /* Smaller font for timestamp */
+            color: #bbb; /* Lighter color for timestamp */
+            margin-top: 5px; /* Space from name */
+            width: 100%; /* Take full width to go to new line */
+            display: none; /* Hidden by default */
+        }
+        .session-item.show-timestamp .session-timestamp {
+            display: block; /* Show when parent has show-timestamp class */
         }
         
-        /* Kebab Menu Styles */
+        /* --- Kebab Menu Styles --- */
         .kebab-menu {
             position: relative;
             display: inline-block;
-            margin-left: 10px; /* Space from session name */
+            flex-shrink: 0; /* Prevent kebab menu from shrinking */
+            /* No order property here */
         }
         .kebab-button {
             background: none;
             border: none;
-            color: white;
-            font-size: 1.2em; /* Adjust size of the dots */
+            color: var(--text-light);
+            font-size: 1.4em; /* Larger dots */
             cursor: pointer;
-            padding: 0 5px;
-            line-height: 1; /* Align dots better vertically */
+            padding: 0 8px;
+            line-height: 1;
+            transition: color 0.2s ease;
         }
         .kebab-button:hover {
-            color: #eee;
+            color: #ccc;
         }
         .dropdown-content {
             display: none;
             position: absolute;
-            background-color: #444;
-            min-width: 120px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
-            z-index: 100; /* Increased z-index significantly */
-            right: 0; /* Align dropdown to the right of the button */
-            border-radius: 5px;
-            overflow: hidden; /* For rounded corners on internal items */
+            background-color: #3b506b; /* Matches session item background */
+            min-width: 130px; /* Slightly wider */
+            box-shadow: 0px 8px 20px 0px var(--shadow-medium); /* Stronger shadow */
+            z-index: 100; /* High z-index */
+            right: 0;
+            border-radius: 8px; /* Softer corners */
+            overflow: hidden;
+            border: 1px solid #4a6582; /* Subtle border */
         }
         .dropdown-content button {
-            color: white;
-            padding: 8px 12px;
+            color: var(--text-light);
+            padding: 10px 15px; /* More padding */
             text-decoration: none;
             display: block;
             background: none;
@@ -228,126 +312,271 @@
             width: 100%;
             text-align: left;
             cursor: pointer;
-            font-size: 0.9em;
+            font-size: 0.95em;
             transition: background-color 0.2s ease;
-            border-radius: 0; /* No individual border radius */
+            font-weight: 400;
         }
         .dropdown-content button:hover {
-            background-color: #666;
+            background-color: #4a6582; /* Darker hover for dropdown items */
         }
         .dropdown-content.show {
             display: block;
         }
 
+        /* --- Main Content Area --- */
         .main-content {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            overflow: hidden; /* Prevent chat container from pushing content */
+            padding: 30px; /* More padding */
+            overflow: hidden;
+            background-color: var(--background-light);
         }
         .chat-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px; /* More space */
+            border-bottom: 1px solid var(--border-color); /* Subtle border */
+            padding-bottom: 15px;
         }
         .chat-header h1 {
-            color: #333;
+            color: var(--text-dark);
             margin: 0;
-            font-size: 2em;
+            font-size: 2.2em; /* Larger title */
+            font-weight: 700;
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+        /* New style for logo in chat header */
+        .chat-header .chat-header-logo {
+            max-height: 80px; /* Increased size for your logo */
+            width: auto;
+            border-radius: 4px; /* Optional: subtle rounded corners for logo */
+        }
+        .chat-header .session-details { /* Container for title and timestamp */
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        .chat-header .session-details .session-title { /* The h1 for session name */
+            margin: 0;
+            font-size: 2.2em;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chat-header .session-details .session-timestamp-right-panel { /* Timestamp for right panel */
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: none; /* Hide timestamp in right chat header */
+        }
+
+
         .chat-container {
             flex-grow: 1;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px; /* Softer corners */
+            padding: 20px; /* More padding */
+            margin-bottom: 25px; /* More space */
             overflow-y: auto;
             background-color: #fff;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 15px; /* More space between messages */
+            box-shadow: 0 4px 15px var(--shadow-light); /* Subtle shadow */
         }
         .message {
-            max-width: 70%;
-            padding: 10px 15px;
-            border-radius: 18px;
+            max-width: 80%; /* Wider messages */
+            padding: 12px 18px; /* More padding */
+            border-radius: 25px; /* More rounded bubbles */
             word-wrap: break-word;
+            line-height: 1.5; /* Better readability */
+            font-size: 1.05em;
         }
         .user-message {
-            background-color: #DCF8C6;
+            background-color: var(--message-user-bg);
             align-self: flex-end;
             text-align: right;
-            border-bottom-right-radius: 3px;
+            border-bottom-right-radius: 8px; /* Slightly less rounded on one corner */
         }
         .ai-message {
-            background-color: #E6E6E6;
+            background-color: var(--message-ai-bg);
             align-self: flex-start;
             text-align: left;
-            border-bottom-left-radius: 3px;
+            border-bottom-left-radius: 8px; /* Slightly less rounded on one corner */
         }
         .ai-message pre {
-            background-color: #eee;
-            padding: 10px;
-            border-radius: 5px;
+            background-color: #eef1f4; /* Lighter background for code blocks */
+            padding: 12px;
+            border-radius: 8px;
             overflow-x: auto;
             white-space: pre-wrap;
             word-break: break-all;
+            font-family: 'Roboto Mono', monospace; /* Monospaced font for code */
+            font-size: 0.9em;
+            line-height: 1.4;
+            border: 1px solid #ddd;
         }
         .ai-message code {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #f0f0f0;
-            padding: 2px 4px;
-            border-radius: 3px;
+            font-family: 'Roboto Mono', monospace; /* Monospaced font for inline code */
+            background-color: #f0f3f6;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.95em;
+            border: 1px solid #eee;
         }
         .ai-message p {
-            margin: 0 0 5px 0;
+            margin: 0 0 8px 0; /* More space between paragraphs */
         }
         .ai-message ul, .ai-message ol {
-            margin: 0;
-            padding-left: 20px;
+            margin: 8px 0;
+            padding-left: 25px;
         }
         .ai-message li {
             margin-bottom: 5px;
         }
+
+        /* --- Input Area --- */
         .input-area {
             display: flex;
-            gap: 10px;
+            gap: 15px; /* More space between input and button */
             align-items: center;
+            padding: 10px; /* Padding around input area */
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow-light); /* Shadow for input area */
+            border: 1px solid var(--border-color);
         }
-        input[type="text"] {
+        input[type="text"]#questionInput { /* Specific ID for the chat input */
             flex-grow: 1;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 25px;
-            font-size: 1em;
+            padding: 14px 20px; /* More padding */
+            border: 1px solid var(--border-color);
+            border-radius: 30px; /* More rounded input */
+            font-size: 1.1em;
             outline: none;
-            transition: border-color 0.3s ease;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
-        input[type="text"]:focus {
-            border-color: #007bff;
+        input[type="text"]#questionInput:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Focus glow */
         }
-        button {
-            padding: 12px 20px;
-            background-color: #007bff;
+        button#sendBtn { /* Specific ID for send button */
+            padding: 14px 25px; /* More padding */
+            background-color: var(--secondary-color);
             color: white;
             border: none;
-            border-radius: 25px;
+            border-radius: 30px; /* More rounded button */
             cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s ease;
+            font-size: 1.1em;
+            font-weight: 500;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 2px 5px var(--shadow-light);
         }
-        button:hover {
-            background-color: #0056b3;
+        button#sendBtn:hover {
+            background-color: var(--secondary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px var(--shadow-medium);
         }
+        button#sendBtn:active {
+            transform: translateY(0);
+        }
+
         .loading-indicator {
             text-align: center;
-            padding: 10px;
+            padding: 15px;
             font-style: italic;
             color: #555;
+            font-size: 0.95em;
             display: none;
         }
+
+        /* --- Scrollbar Styling (Optional, for aesthetic consistency) --- */
+        /* Works in Webkit (Chrome, Safari, newer Edge) */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; /* Light track for light backgrounds */
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #3c4b5e; /* Darker track for sidebar */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #6a7f9a; /* Custom thumb for sidebar */
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #5a6e84;
+        }
+
+        /* Basic Responsiveness - adjust as needed */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                padding: 15px;
+                box-shadow: 0 2px 5px var(--shadow-medium);
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
+            .sidebar-header {
+                flex-direction: column;
+                align-items: flex-start;
+                margin-bottom: 15px;
+            }
+            .sidebar-header h2 {
+                margin-bottom: 10px; /* Space between title and user info on small screens */
+            }
+            .user-details-section { /* Adjust for smaller screens */
+                margin-top: 10px;
+                width: 100%; /* Take full width */
+            }
+            .main-content {
+                padding: 20px;
+                flex-grow: 1; /* Allow chat to take remaining height */
+            }
+            .chat-header {
+                flex-direction: column; /* Stack chat header elements */
+                align-items: flex-start;
+            }
+            .chat-header h1 {
+                margin-bottom: 10px; /* Space between title and logo */
+            }
+            .input-area {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+            }
+            input[type="text"]#questionInput, button#sendBtn {
+                width: 100%;
+                border-radius: 10px;
+            }
+            .auth-form {
+                width: 95%;
+                padding: 25px;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -368,10 +597,10 @@
         <div class="sidebar">
             <div class="sidebar-header">
                 <h2>Sessions</h2>
-                <div class="user-info">
-                    <span id="loggedInUser"></span>
-                    <button id="logoutBtn">Logout</button>
-                </div>
+            </div>
+            <div class="user-details-section">
+                <span id="loggedInUser"></span>
+                <button id="logoutBtn">Logout</button>
             </div>
             <button id="newChatBtn" class="sidebar-button">New Chat</button>
             <ul id="sessionList" class="session-list">
@@ -380,7 +609,11 @@
 
         <div class="main-content">
             <div class="chat-header">
-                <h1 id="currentSessionName">Select a Chat or Start a New One</h1>
+                <div class="session-details">
+                    <h1 id="currentSessionName" class="session-title">Select a Chat or Start a New One</h1>
+                    <span id="currentSessionTimestamp" class="session-timestamp-right-panel"></span>
+                </div>
+                <img src="https://techsivaram.com/Assets/logo.png" alt="TechSivaram Logo" class="chat-header-logo">
             </div>
             <div class="chat-container" id="chatContainer">
             </div>
@@ -412,6 +645,7 @@
         const newChatBtn = document.getElementById('newChatBtn');
         const sessionList = document.getElementById('sessionList');
         const currentSessionNameDisplay = document.getElementById('currentSessionName');
+        const currentSessionTimestampDisplay = document.getElementById('currentSessionTimestamp'); // New element
         const chatContainer = document.getElementById('chatContainer');
         const questionInput = document.getElementById('questionInput');
         const sendBtn = document.getElementById('sendBtn');
@@ -481,6 +715,14 @@
                         authTitle.textContent = 'Login';
                         authSubmitBtn.textContent = 'Login';
                         toggleText.innerHTML = "Don't have an account? <a id='toggleAuthMode'>Register</a>";
+                        // Re-attach event listener to the new <a> tag
+                        document.getElementById('toggleAuthMode').addEventListener('click', (e) => {
+                            e.preventDefault();
+                            isLoginMode = !isLoginMode;
+                            authTitle.textContent = isLoginMode ? 'Login' : 'Register';
+                            authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Register';
+                            toggleText.innerHTML = isLoginMode ? "Don't have an account? <a id='toggleAuthMode'>Register</a>" : "Already have an account? <a id='toggleAuthMode'>Login</a>";
+                        });
                         passwordInput.value = ''; // Clear password field
                         usernameInput.focus();
                     }
@@ -530,6 +772,7 @@
             sessionList.innerHTML = '';
             loggedInUserSpan.textContent = '';
             currentSessionNameDisplay.textContent = 'Select a Chat or Start a New One';
+            // currentSessionTimestampDisplay.textContent = ''; // Removed: Clear timestamp
             usernameInput.value = '';
             passwordInput.value = '';
             setAuthMessage("", false); // Clear any auth messages
@@ -537,6 +780,14 @@
             authTitle.textContent = 'Login';
             authSubmitBtn.textContent = 'Login';
             toggleText.innerHTML = "Don't have an account? <a id='toggleAuthMode'>Register</a>";
+            // Re-attach event listener to the new <a> tag
+            document.getElementById('toggleAuthMode').addEventListener('click', (e) => {
+                e.preventDefault();
+                isLoginMode = !isLoginMode;
+                authTitle.textContent = isLoginMode ? 'Login' : 'Register';
+                authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Register';
+                toggleText.innerHTML = isLoginMode ? "Don't have an account? <a id='toggleAuthMode'>Register</a>" : "Already have an account? <a id='toggleAuthMode'>Login</a>";
+            });
         }
 
         // --- Authenticated Fetch Wrapper ---
@@ -586,14 +837,28 @@
                 if (!currentSessionId || !sessions.some(s => s.id === currentSessionId)) {
                     if (sessions.length > 0) {
                         sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                        await loadSession(sessions[0].id, sessions[0].name);
+                        // No timestamp passed to loadSession as it's not displayed in header
+                        await loadSession(sessions[0].id, sessions[0].name); 
                     } else {
-                        await createNewSession();
+                        // If no sessions exist, create a new one automatically
+                        await createNewSession(); 
                     }
                 }
             } catch (error) {
                 console.error('Error fetching sessions:', error);
                 // No alert here, error handled by authenticatedFetch or checkAuthStatus
+            }
+        }
+
+        function formatTimestamp(isoString) {
+            if (!isoString) return '';
+            try {
+                const date = new Date(isoString);
+                const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+                return date.toLocaleString(undefined, options);
+            } catch (e) {
+                console.error("Error formatting timestamp:", e);
+                return isoString; // Return original if parsing fails
             }
         }
 
@@ -620,6 +885,7 @@
                 kebabButton.onclick = (e) => {
                     e.stopPropagation(); // Prevent loading session when clicking kebab
                     toggleDropdown(kebabMenuDiv.querySelector('.dropdown-content'), li); // Pass li to toggleDropdown
+                    li.classList.toggle('show-timestamp'); // Toggle timestamp visibility on kebab click
                 };
                 kebabMenuDiv.appendChild(kebabButton);
 
@@ -633,6 +899,7 @@
                     promptRenameSession(session.id, session.name, li);
                     dropdownContent.classList.remove('show'); // Hide dropdown after action
                     li.classList.remove('active-dropdown'); // Remove active-dropdown class
+                    li.classList.remove('show-timestamp'); // Also hide timestamp on action
                 };
                 dropdownContent.appendChild(renameBtn);
 
@@ -643,11 +910,19 @@
                     deleteSession(session.id, session.name);
                     dropdownContent.classList.remove('show'); // Hide dropdown after action
                     li.classList.remove('active-dropdown'); // Remove active-dropdown class
+                    li.classList.remove('show-timestamp'); // Also hide timestamp on action
                 };
                 dropdownContent.appendChild(deleteBtn);
 
                 kebabMenuDiv.appendChild(dropdownContent);
                 li.appendChild(kebabMenuDiv);
+
+                // Timestamp for the sidebar, hidden by default
+                const timestampSpan = document.createElement('span');
+                timestampSpan.classList.add('session-timestamp');
+                timestampSpan.textContent = formatTimestamp(session.created_at);
+                li.appendChild(timestampSpan);
+
 
                 li.onclick = () => loadSession(session.id, session.name);
                 
@@ -665,6 +940,7 @@
                 if (d !== dropdown && d.classList.contains('show')) {
                     d.classList.remove('show');
                     d.closest('.session-item').classList.remove('active-dropdown');
+                    d.closest('.session-item').classList.remove('show-timestamp'); // Hide timestamp for others
                 }
             });
 
@@ -685,16 +961,18 @@
                     if (dropdown.classList.contains('show')) {
                         dropdown.classList.remove('show');
                         dropdown.closest('.session-item').classList.remove('active-dropdown'); // Remove class when closing
+                        dropdown.closest('.session-item').classList.remove('show-timestamp'); // Also hide timestamp
                     }
                 });
             }
         }
 
-        async function loadSession(sessionId, sessionName) {
+        async function loadSession(sessionId, sessionName) { // Removed sessionTimestamp parameter
             if (currentSessionId === sessionId) return;
 
             currentSessionId = sessionId;
             currentSessionNameDisplay.textContent = sessionName;
+            // currentSessionTimestampDisplay.textContent = formatTimestamp(sessionTimestamp); // Removed: Set timestamp
             clearChatDisplay();
 
             document.querySelectorAll('.session-item').forEach(item => {
@@ -705,6 +983,7 @@
                     dropdown.classList.remove('show');
                     item.classList.remove('active-dropdown');
                 }
+                item.classList.remove('show-timestamp'); // Hide timestamp when selecting a new session
                 if (item.dataset.sessionId === sessionId) {
                     item.classList.add('active');
                 }
@@ -728,7 +1007,7 @@
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const newSession = await response.json();
                 await fetchSessions();
-                await loadSession(newSession.id, newSession.name);
+                await loadSession(newSession.id, newSession.name); // No timestamp
             } catch (error) {
                 console.error('Error creating new session:', error);
                 alert('Failed to create new chat session.'); // Alert here, authenticatedFetch should have handled 401
@@ -746,6 +1025,9 @@
             addMessage('human', question);
             questionInput.value = '';
             loadingIndicator.style.display = 'block';
+            sendBtn.disabled = true; // Disable send button during processing
+            questionInput.disabled = true; // Disable input during processing
+
 
             try {
                 const response = await authenticatedFetch('/chat', {
@@ -768,6 +1050,8 @@
                 addMessage('ai', `Error: ${error.message}. Please check console for details.`);
             } finally {
                 loadingIndicator.style.display = 'none';
+                sendBtn.disabled = false; // Re-enable send button
+                questionInput.disabled = false; // Re-enable input
                 questionInput.focus();
             }
         }
@@ -792,8 +1076,14 @@
                 
                 const updatedSession = await response.json();
                 listItemElement.querySelector('.session-name').textContent = updatedSession.name;
+                // Update timestamp if it's currently displayed
+                const timestampSpan = listItemElement.querySelector('.session-timestamp');
+                if (timestampSpan) {
+                    timestampSpan.textContent = formatTimestamp(updatedSession.created_at);
+                }
                 if (currentSessionId === sessionId) {
                     currentSessionNameDisplay.textContent = updatedSession.name;
+                    // currentSessionTimestampDisplay.textContent = formatTimestamp(updatedSession.created_at); // Removed: Update right panel timestamp
                 }
             } catch (error) {
                 console.error('Error renaming session:', error);
@@ -813,12 +1103,14 @@
                     throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
                 }
                 
+                // If the deleted session was the current one, clear chat and current session
                 if (currentSessionId === sessionId) {
                     currentSessionId = null;
                     currentSessionNameDisplay.textContent = 'Select a Chat or Start a New One';
+                    // currentSessionTimestampDisplay.textContent = ''; // Removed: Clear timestamp
                     clearChatDisplay();
                 }
-                await fetchSessions();
+                await fetchSessions(); // Re-fetch sessions to update the sidebar
 
             } catch (error) {
                 console.error('Error deleting session:', error);
@@ -828,7 +1120,9 @@
 
         // --- Event Listeners ---
         authSubmitBtn.addEventListener('click', authenticateUser);
-        toggleAuthMode.addEventListener('click', (event) => {
+        // Re-attaching this specifically for the initial toggle element
+        // It will be re-attached inside authenticateUser for subsequent toggles
+        document.getElementById('toggleAuthMode').addEventListener('click', (event) => {
             event.preventDefault(); // Prevent default link behavior
             isLoginMode = !isLoginMode;
             authTitle.textContent = isLoginMode ? 'Login' : 'Register';
@@ -859,6 +1153,16 @@
 
         // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', checkAuthStatus);
+
+        // --- Marked.js Configuration (Optional but good for security) ---
+        // Marked.js can render HTML content from Markdown. If your AI model
+        // might output malicious HTML, you might want to sanitize it.
+        // For basic use, the default is often fine.
+        // For more secure applications, consider:
+        // marked.use({
+        //   mangle: false,
+        //   headerIds: false
+        // });
     </script>
 </body>
 </html>
