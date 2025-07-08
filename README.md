@@ -184,3 +184,7 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 ## 📧 Contact
 
 For any questions, feedback, or collaborations, please reach out to [Your Name/Email or GitHub Profile Link].
+
+## Screenshots
+
+<img width="1276" alt="image" src="https://github.com/user-attachments/assets/be05ceb0-0086-402c-bc49-91f52a501cfd" />
