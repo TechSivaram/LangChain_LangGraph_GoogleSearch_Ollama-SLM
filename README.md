@@ -1,180 +1,186 @@
-# Smart Q&A System with Ollama SLM & Google Search
+# LangChain_LangGraph_GoogleSearch_Ollama-llama3
 
-This project implements a smart Question & Answer (Q&A) system that leverages an Ollama-powered Small Language Model (SLM) for conversational AI and integrates with Google Search for real-time information retrieval. The system is designed to provide accurate, comprehensive, and up-to-date answers by deciding whether external web research is necessary. It is built with [LangChain](https://www.langchain.com/) for LLM orchestration and [LangGraph](https://langchain-ai.github.io/langgraph/) for robust agentic workflow management, and it features persistent chat history using SQLite, allowing for session management.
+## 💡 Project Overview
 
-## Features
+This project, `LangChain_LangGraph_GoogleSearch_Ollama-llama3`, implements a robust and intelligent Question-Answering (QA) system. It leverages the power of Large Language Models (LLMs) run locally via Ollama, combined with real-time web search capabilities through the Google Custom Search API. The system intelligently decides when to use its internal knowledge versus performing a targeted web search, ensuring up-to-date and accurate answers, especially for dynamic or current events.
 
-* **Intelligent Research Decision:** The SLM intelligently decides if a web search is needed to answer a user's query, especially for current or rapidly changing information.
-* **Google Search Integration:** Utilizes Google Search API to fetch relevant and up-to-date information when research is required.
-* **Answer Refinement:** The SLM refines its initial answer by synthesizing information obtained from web searches.
-* **Conversation History Persistence:** Chat history is saved to a SQLite database, allowing users to continue conversations across sessions.
-* **Flexible Ollama Model Selection:** Easily configure the desired Ollama model (e.g., `phi3`, `llama3`).
-* **Error Handling and Troubleshooting:** Includes robust error handling and helpful troubleshooting tips for common issues.
+### ✨ Key Features
 
-## Prerequisites
+* **Intelligent QA:** Provides answers to user questions using a sophisticated LLM (`llama3` by default).
+* **Real-time Web Search Integration:** Automatically performs Google searches for queries requiring the latest information (e.g., current events, political figures).
+* **Programmatic Search Override:** Includes logic to ensure critical, time-sensitive queries always trigger a web search for maximum accuracy, overriding the LLM's initial decision if necessary.
+* **Modular Agentic Architecture:** Built with LangChain and LangGraph for a clear, extensible, and stateful multi-step workflow.
+* **Local LLM Execution:** Utilizes Ollama to run the LLM locally on your machine, ensuring data privacy and reducing reliance on external API services for model inference.
+* **User-friendly Web Interface:** Accessible via a simple web UI provided by a FastAPI backend.
 
-Before running the application, ensure you have the following:
+### 🎯 Problem Solved
 
-1.  **Python 3.9+:** Make sure you have a compatible Python version installed. [Download Python](https://www.python.org/downloads/)
-2.  **Ollama:**
-    * Download and install [Ollama](https://ollama.com/download).
-    * Ensure the Ollama server is running. You can start it by running `ollama serve` in your terminal or by launching the desktop application.
-    * Pull the desired language model. The default is `phi3`, but `llama3` is recommended for better tool-use capabilities. You can pull models using `ollama pull phi3` or `ollama pull llama3`.
-3.  **Google Cloud Project and API Keys:**
-    * **Google API Key:** Obtain a Google API Key from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials). Enable the **Custom Search API** for this key.
-    * **Google Custom Search Engine ID (CSE ID):**
-        * Go to the [Google Programmable Search Engine](https://programmablesearchengine.google.com/controlpanel/all) and create a new search engine.
-        * Configure it to "Search the entire web."
-        * Note down your Search Engine ID.
-    * Make sure billing is enabled in your Google Cloud Project if you anticipate exceeding the free tier limits for the Custom Search API.
+Large Language Models (LLMs) often have a "knowledge cutoff," meaning their training data is not current and they cannot provide up-to-the-minute information. This project addresses this limitation by dynamically integrating live web search. For questions where timeliness is crucial, `LangChain_LangGraph_GoogleSearch_Ollama-llama3` ensures answers are always fresh and reliable, making it a powerful tool for information retrieval on dynamic topics.
 
-## Installation
+## 🛠️ Technologies Used
+
+* **Python:** The core programming language.
+* **LangChain:** For building LLM applications and orchestrating components.
+* **LangGraph:** A library for building robust and stateful multi-step LLM agents and workflows.
+* **FastAPI:** A modern, fast (high-performance) web framework for building the API backend.
+* **Uvicorn:** ASGI server for running the FastAPI application.
+* **Ollama:** For easily running large language models (like Llama 3) locally on your machine.
+* **Google Search API:** For performing real-time web searches to gather up-to-date information.
+* **`python-dotenv`:** For securely managing environment variables (API keys, model names, etc.).
+* **`pydantic`:** For data validation and settings management (used by FastAPI/LangChain).
+
+## 🚀 Getting Started
+
+Follow these steps to set up and run `LangChain_LangGraph_GoogleSearch_Ollama-llama3` on your local machine.
+
+### Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+* **Python 3.9+**
+* **pip** (Python package installer)
+* **Ollama:** Download and install the Ollama desktop application or server from [ollama.com](https://ollama.com/).
+* **Google Cloud Project & API Key:** You'll need a Google Search API Key and a Custom Search Engine ID (CSE ID) enabled for the Custom Search JSON API. Follow [Google's official guide](https://developers.google.com/custom-search/v1/overview) to get these credentials.
+
+### Installation
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository_url>
-    cd <repository_name>
+    git clone https://github.com/your-username/LangChain_LangGraph_GoogleSearch_Ollama-llama3.git # Replace with your actual repo URL
+    cd LangChain_LangGraph_GoogleSearch_Ollama-llama3
     ```
 
-2.  **Create a virtual environment (recommended):**
+2.  **Create a Python virtual environment (highly recommended):**
     ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    python -m venv .venv
+    source .venv/bin/activate # On Windows: .venv\Scripts\activate
     ```
 
 3.  **Install dependencies:**
-    The project uses various Python libraries, including [LangChain](https://www.langchain.com/), [LangGraph](https://langchain-ai.github.io/langgraph/), [python-dotenv](https://pypi.org/project/python-dotenv/) for environment variables, and [Pydantic](https://docs.pydantic.dev/latest/) for structured data. The full list is in `requirements.txt`:
-
-    ```
-    langchain>=0.2.5
-    langchain-ollama>=0.0.3
-    langgraph>=0.0.60
-    langchain-community>=0.2.5
-    langchain-google-community>=0.0.1
-    langchain-core>=0.2.0
-    google-search-results==2.0.0
-    python-dotenv==1.0.1
-    pydantic>=2.0.0
-    pytz>=2024.1
-    ```
-
-    You can install them by running:
     ```bash
     pip install -r requirements.txt
     ```
+    (Make sure you have a `requirements.txt` file in your project's root containing: `fastapi`, `uvicorn`, `langchain`, `langchain-ollama`, `langchain-google-community`, `langgraph`, `python-dotenv`, `pydantic`).
 
-4.  **Configure Environment Variables:**
-    Create a `.env` file in the root directory of your project and add your API keys and preferred Ollama model:
+### Configuration
+
+1.  **Create a `.env` file:**
+    In the root of your project directory, create a file named `.env` and add your API keys and model configuration. This file should **not** be committed to public repositories for security reasons (it's typically listed in `.gitignore`).
     ```dotenv
     GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
     GOOGLE_CSE_ID="YOUR_GOOGLE_CSE_ID"
-    OLLAMA_MODEL="phi3" # Or "llama3", "mistral", etc., ensure you have pulled it
+    OLLAMA_MODEL="llama3" # This is the default. You can change to "phi3" or another model you've pulled.
     ```
+    **Replace `"YOUR_GOOGLE_API_KEY"` and `"YOUR_GOOGLE_CSE_ID"` with your actual credentials.**
 
-    Replace `"YOUR_GOOGLE_API_KEY"` and `"YOUR_GOOGLE_CSE_ID"` with your actual keys.
-
-## Usage
-
-1.  **Run the application:**
+2.  **Pull the Ollama Model:**
+    Open a *separate* terminal or command prompt window and ensure your Ollama server is running. Then, download the `llama3` model (or your chosen model):
     ```bash
-    python main.py
+    ollama pull llama3
     ```
-
-2.  **Interact with the Q&A system:**
-    * The system will first prompt you to start a `(n)ew` session or `(l)oad` an existing one.
-    * Type your questions at the `Your Question:` prompt.
-    * To end the current chat session and start a new one, type `new`.
-    * To exit the application, type `exit`.
-
-    Example interaction:
+    To ensure the Ollama server is running in the background:
+    ```bash
+    ollama serve
     ```
-    --- Smart Q&A System with Ollama SLM & Google Search ---
-    Using Ollama Model: 'phi3'
-    Ensure Ollama is running and the specified model is pulled.
-    Type 'exit' to quit.
-    --- Database 'chat_history.db' initialized. ---
+    Keep this terminal window open while your FastAPI application is running.
 
-    Start a (n)ew session or (l)oad existing? (n/l): n
-    --- New session started. Your session ID: f2a8e4c1-5d3b-4e0f-9a1b-2c7e6a0d4f1e ---
+### Running the Application
 
-    [f2a8e4c1...] Your Question (type 'exit' to quit, 'new' to start new chat): What is the current population of India?
-
-    --- Processing user question: 'What is the current population of India?' ---
-
-    --- NODE: Calling SLM for Initial Answer ---
-    --- DEBUG: SLM Initial Response: The population of India is a large and growing number, making it the most populous country in the world. As of recent estimates, it is over 1.4 billion people.
-
-    --- NODE: Deciding if Research is Needed ---
-    --- DEBUG: SLM's Structured Research Decision RAW: {"should_research": true, "search_query": "current population of India"} ---
-    --- DEBUG: Research IS needed. Search Query: 'current population of India' ---
-
-    --- NODE: Conducting Research ---
-
-    --- DEBUG: NODE - Performing Google Search for query: 'current population of India' ---
-    --- DEBUG: Search Results: Based on various sources, the current population of India is estimated to be over 1.4 billion people, making it the world's most populous country, surpassing China. The exact figure varies slightly depending on the source and the time of estimation, but it is generally accepted to be around 1,441,718,370 as of mid-2024. Sources include Worldometer, United Nations, and other demographic institutions.
-
-    --- NODE: Refining Answer with Research Results ---
-    --- DEBUG: SLM Refined Response: As of mid-2024, the current population of India is estimated to be over 1.4 billion people, specifically around 1,441,718,370. This makes the world's most populous country, having surpassed China.
-
-    AI's Final Answer: As of mid-2024, the current population of India is estimated to be over 1.4 billion people, specifically around 1,441,718:370. This makes India the world's most populous country, having surpassed China.
-
-    [f2a8e4c1...] Your Question (type 'exit' to quit, 'new' to start new chat): Who invented the lightbulb?
-
-    --- Processing user question: 'Who invented the lightbulb?' ---
-
-    --- NODE: Calling SLM for Initial Answer ---
-    --- DEBUG: SLM Initial Response: The invention of the practical incandescent light bulb is often credited to Thomas Edison. However, many scientists and inventors contributed to the development of electric lighting.
-
-    --- NODE: Deciding if Research is Needed ---
-    --- DEBUG: SLM's Structured Research Decision RAW: {"should_research": false, "search_query": ""} ---
-    --- DEBUG: SLM decided NO RESEARCH IS NEEDED. ---
-
-    AI's Final Answer: The invention of the practical incandescent light bulb is most commonly attributed to Thomas Edison. However, it's important to note that many scientists and inventors contributed to the development of electric lighting over a period of time, with Edison's contribution being the commercially viable and long-lasting bulb.
-
-    [f2a8e4c1...] Your Question (type 'exit' to quit, 'new' to start new chat): exit
-    Exiting application.
+1.  **Start the FastAPI application:**
+    Open a terminal in your project's root directory (with the Python virtual environment activated) and run:
+    ```bash
+    uvicorn main:app --reload
     ```
+    The `--reload` flag is useful during development as it automatically restarts the server when code changes are detected.
 
-## How It Works
+2.  **Access the Application:**
+    Open your web browser and navigate to `http://127.0.0.1:8000/`. You should see the user interface ready for interaction.
 
-The system uses a [LangGraph](https://langchain-ai.github.io/langgraph/) state machine with the following nodes:
+## 🖥️ Frontend UI
 
-* **`call_slm_initial`**: The initial query is passed to the Ollama model to generate a preliminary response.
-* **`decide_to_research`**: The SLM evaluates the user's question and the initial response to determine if external web research is required for accuracy, currency, or completeness. This node is explicitly prompted to be aggressive about using search for latest information.
-* **`conduct_research`**: If research is deemed necessary, the `search_tool` (powered by Google Search API) is invoked with a generated query.
-* **`refine_answer_with_research`**: The Ollama model receives the initial conversation history and the research results. It then synthesizes this information to provide a comprehensive, accurate, and up-to-date final answer.
+The user interface for this project is a simple, browser-based chat interface. It is implemented using basic HTML, CSS, and JavaScript, and these static files are served directly by the FastAPI backend (`main.py`). This design provides a lightweight and accessible way to interact with the QA system without requiring a separate frontend development server or complex build process.
 
-The `decide_to_research` node uses a structured output ([Pydantic](https://docs.pydantic.dev/latest/) model) to reliably get the SLM's decision and search query.
+### UI File Location:
 
-## Project Structure
+The primary UI file (`index.html`) and any associated static assets (like `style.css` or `script.js`) are located within the `static/` directory in the project's root. FastAPI is configured to serve these files automatically.
 
-* `my_project/`
-    * `├── .env`
-    * `├── main.py`
-    * `├── requirements.txt`
-    * `└── chat_history.db` (generated at runtime)
+### UI Features:
 
-## Troubleshooting
+* **Input Field:** A text box for typing your questions.
+* **Send Button:** To submit your query to the backend.
+* **Conversation History:** Displays previous questions and the system's responses, forming a simple chat log.
 
-If you encounter issues, consider the following:
+This minimalist UI focuses on functionality, allowing you to quickly test and interact with the LLM and search capabilities.
 
-1.  **Ollama Server:** Ensure Ollama is running (`ollama serve` or the desktop app).
-2.  **Ollama Model:** Verify that the configured `OLLAMA_MODEL` (e.g., `phi3`, `llama3`) is pulled locally (`ollama list`). `llama3` is generally more reliable for tool use.
-3.  **Google API Keys:**
-    * Double-check `GOOGLE_API_KEY` and `GOOGLE_CSE_ID` in your `.env` file.
-    * Confirm that the Custom Search API is enabled in your Google Cloud Project.
-    * Ensure your Programmable Search Engine is configured to search the entire web.
-    * Check Google Cloud billing if you suspect exceeding free tier limits.
-4.  **Dependencies:** Make sure all dependencies from `requirements.txt` are installed in your environment. Pay close attention to `pydantic>=2.0.0` and `langchain-core>=0.2.0`.
-5.  **Indentation Errors:** If you see `IndentationError` (common after copy-pasting code), try pasting the code into a plain text editor first, then copy-paste into your IDE (like PyCharm), and run its 'Reformat Code' function (e.g., Ctrl+Alt+L or Cmd+Option+L).
-6.  **Error Messages:** Look closely at the full error messages in the console. They often provide direct clues about the problem.
-7.  **SLM Decision Debugging:** Examine the `--- DEBUG: SLM's Structured Research Decision RAW:` output. This shows what the SLM decided regarding research and the generated search query. This is crucial for understanding why research might or might not be happening.
-8.  **Refinement Quality:** If search results are found but the answer isn't significantly improved, review the `refine_answer_with_research` prompt in `main.py` to ensure it guides the SLM effectively.
+## 💡 Usage
 
-## Contributing
+Once the application is running, you can interact with the system by typing your questions into the chat interface.
 
-Feel free to fork the repository, make improvements, and submit pull requests.
+**Examples of queries you can try:**
 
-## License
+* "What is the capital of France?" (May use LLM's internal knowledge)
+* "Who is the current chief minister of Andhra Pradesh?" (Designed to trigger a web search due to programmatic override and timeliness)
+* "What is the weather like in Vizianagaram today?" (Likely triggers a web search for real-time data)
+* "Explain the concept of quantum entanglement." (Primarily uses LLM's internal knowledge, possibly augmented by general search if model deems necessary)
 
-This project is open-source and available under the MIT License.
+The underlying LangGraph agent will intelligently decide whether to answer based on the LLM's knowledge, perform a targeted web search, or combine both to provide the most accurate and up-to-date response.
+
+## 📂 Project Structure
+
+The project's directory and file organization is designed for clarity and maintainability:
+
+* `.env`: Stores environment-specific variables like API keys (`GOOGLE_API_KEY`, `GOOGLE_CSE_ID`) and model configurations (`OLLAMA_MODEL`). **This file is crucial for security and is intentionally excluded from version control via `.gitignore`.**
+* `main.py`: Serves as the primary entry point for the FastAPI application, handling API route definitions and serving the static web user interface.
+* `app/`: A Python package encapsulating the core business logic of the application.
+    * `__init__.py`: Designates `app` as a Python package.
+    * `qa_agent.py`: Contains the intricate LangGraph agent's state machine, defining how the LLM interacts with tools (like Google Search), manages conversational state, and applies programmatic overrides for specific queries.
+* `static/`: Dedicated to serving all static frontend assets directly to the user's browser.
+    * `index.html`: The main interactive web interface for the chat application.
+    * *(Optional: `style.css`, `script.js`)*: Additional CSS for styling and JavaScript for client-side interactivity, if present.
+* `requirements.txt`: Lists all Python package dependencies required for the project.
+* `LICENSE`: Specifies the project's legal licensing terms, defining how others can use, distribute, and modify the code.
+* `README.md`: This comprehensive documentation file, providing an overview, setup guide, usage instructions, and more.
+
+## ⚠️ Troubleshooting
+
+* **"Failed to conduct search" / No search results:**
+    * Ensure your `GOOGLE_API_KEY` and `GOOGLE_CSE_ID` are correctly set in your `.env` file.
+    * Verify that the Google Custom Search JSON API is enabled for your Google Cloud project linked to the API key.
+    * Check your internet connection.
+* **Slow responses from Ollama model (e.g., Llama 3):**
+    * **GPU Usage:** This is the most common reason for slowness. Ensure your system has a compatible GPU (NVIDIA with CUDA, AMD with ROCm) and sufficient VRAM (8GB+ for `llama3:8b` is highly recommended, 16GB+ is ideal). Ollama should automatically utilize your GPU if available and properly configured. Use `nvidia-smi` (for NVIDIA GPUs on Linux/WSL) or your system's task/activity monitor to check GPU utilization by Ollama.
+    * **System RAM:** Ensure you have enough free system RAM (16GB+ recommended). If the model doesn't fit entirely into VRAM, it will use system RAM, which is significantly slower.
+    * **Ollama Version:** Keep your Ollama installation updated (`ollama --version`, then `ollama update` or re-download from [ollama.com](https://ollama.com/)). Newer versions often include performance optimizations.
+    * **CPU Threads:** You can experiment with setting the `OLLAMA_NUM_THREADS` environment variable to your CPU's physical core count before starting Ollama or Uvicorn. For example, `export OLLAMA_NUM_THREADS=8` (on Linux/macOS) or `set OLLAMA_NUM_THREADS=8` (on Windows CMD).
+* **"Connection Refused" to Ollama:**
+    * Make sure `ollama serve` is running in a *separate* terminal window and that the Ollama application is active on your system.
+* **Incorrect answers despite seemingly good search results:**
+    * If the search results clearly contain the correct answer but the LLM provides an incorrect one, it might be an issue with the LLM's ability to extract and synthesize information from the provided context. Ensure the prompts within `qa_agent.py` for tasks like `refine_answer_with_research` are clear and specific.
+
+## 🗺️ Roadmap (Future Enhancements)
+
+* Implement proper conversational memory to allow for multi-turn conversations and context retention.
+* Explore more sophisticated RAG (Retrieval-Augmented Generation) techniques, such as document chunking and embedding, for internal knowledge bases.
+* Enhance error handling and provide more informative user feedback in the web UI.
+* Add Dockerfile and `docker-compose.yml` for easier containerized deployment.
+* Allow users to select different locally-pulled Ollama models directly from the UI.
+* Integrate alternative web search providers beyond Google Search API.
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/your-username/LangChain_LangGraph_GoogleSearch_Ollama-llama3/issues) (replace with your actual issues page link).
+
+1.  **Fork** the repository.
+2.  **Create a new branch** for your feature or bugfix: `git checkout -b feature/your-feature-name`
+3.  **Make your changes**.
+4.  **Commit your changes:** `git commit -m "feat: Add new feature X"`
+5.  **Push to your branch:** `git push origin feature/your-feature-name`
+6.  **Open a Pull Request** to the `main` branch of this repository.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the `LICENSE` file for details. (If you don't have one, consider adding a `LICENSE` file in your root directory).
+
+## 📧 Contact
+
+For any questions, feedback, or collaborations, please reach out to [Your Name/Email or GitHub Profile Link].

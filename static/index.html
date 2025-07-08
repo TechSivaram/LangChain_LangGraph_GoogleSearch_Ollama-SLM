@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart QA Agent</title>
+    <style>
+        /* styles.css content embedded here */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 700px;
+            height: 90vh; /* Adjust height as needed */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            margin: 20px;
+        }
+
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.5em;
+            text-align: center;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .session-selector {
+            padding: 10px 20px;
+            background-color: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .session-selector label {
+            margin-right: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .session-selector select {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            font-size: 0.9em;
+            margin-right: 10px;
+        }
+
+        .session-selector button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s ease;
+        }
+
+        .session-selector button:hover {
+            background-color: #0056b3;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #fdfdfd;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .chat-message {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: flex-start;
+        }
+
+        .chat-message.user {
+            justify-content: flex-end;
+        }
+
+        .chat-message.ai {
+            justify-content: flex-start;
+        }
+
+        .chat-message.error {
+            justify-content: center;
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            padding: 12px 18px;
+            border-radius: 20px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .chat-message.user .message-bubble {
+            background-color: #DCF8C6; /* Light green */
+            color: #333;
+            border-bottom-right-radius: 5px; /* Smoother corner */
+        }
+
+        .chat-message.ai .message-bubble {
+            background-color: #E0E0E0; /* Light gray */
+            color: #333;
+            border-bottom-left-radius: 5px; /* Smoother corner */
+        }
+
+        .chat-message.error .message-bubble {
+            background-color: #ffdddd; /* Light red */
+            color: #d8000c;
+            border: 1px solid #d8000c;
+            text-align: center;
+        }
+
+        .chat-input-container {
+            display: flex;
+            padding: 15px 20px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        .chat-input-container input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 25px;
+            font-size: 1em;
+            margin-right: 10px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .chat-input-container input:focus {
+            border-color: #4CAF50;
+        }
+
+        .chat-input-container button {
+            padding: 12px 25px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease, opacity 0.2s ease;
+        }
+
+        .chat-input-container button:hover {
+            background-color: #45a049;
+        }
+
+        .chat-input-container button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 5px;
+            color: #888;
+            font-style: italic;
+            min-height: 20px; /* Give it some space even when empty */
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            Smart QA Agent
+        </div>
+
+        <div class="session-selector">
+            <label for="sessionSelect">Session:</label>
+            <select id="sessionSelect"></select>
+            <button id="newSessionBtn">New Session</button>
+        </div>
+
+        <div class="chat-container">
+            <div id="chatDisplay" class="chat-display"></div>
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+
+        <div class="chat-input-container">
+            <input type="text" id="userInput" placeholder="Type your question...">
+            <button id="sendBtn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // script.js content embedded here
+        const API_BASE_URL = 'http://127.0.0.1:8000'; // Make sure this matches your FastAPI URL
+        let currentSessionId = localStorage.getItem('currentSessionId') || null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const sendBtn = document.getElementById('sendBtn');
+            const userInput = document.getElementById('userInput');
+            const newSessionBtn = document.getElementById('newSessionBtn');
+            const sessionSelect = document.getElementById('sessionSelect');
+
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            newSessionBtn.addEventListener('click', startNewSession);
+            sessionSelect.addEventListener('change', (e) => {
+                loadSession(e.target.value);
+            });
+
+            // Initial load sequence
+            loadAllSessions().then(() => {
+                if (currentSessionId) {
+                    loadSession(currentSessionId); // Try loading the last active session
+                } else {
+                    startNewSession(); // Start a new session if none exists
+                }
+            });
+        });
+
+        function displayMessage(message, sender) {
+            const chatDisplay = document.getElementById('chatDisplay');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message', sender);
+            
+            const bubble = document.createElement('div');
+            bubble.classList.add('message-bubble');
+            bubble.textContent = message;
+
+            messageElement.appendChild(bubble);
+            chatDisplay.appendChild(messageElement);
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const chatDisplay = document.getElementById('chatDisplay');
+            const userText = userInput.value.trim();
+            const sendBtn = document.getElementById('sendBtn');
+            const statusMessage = document.getElementById('statusMessage');
+
+            if (userText === '') return;
+
+            displayMessage(userText, 'user');
+            userInput.value = ''; // Clear input
+
+            statusMessage.textContent = 'Thinking...';
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: userText,
+                        session_id: currentSessionId,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayMessage(data.response, 'ai');
+
+            } catch (error) {
+                console.error('Error during chat processing:', error);
+                displayMessage(`Error: ${error.message}`, 'error');
+            } finally {
+                statusMessage.textContent = '';
+                sendBtn.disabled = false;
+                userInput.disabled = false;
+                userInput.focus();
+                chatDisplay.scrollTop = chatDisplay.scrollHeight;
+            }
+        }
+
+        async function startNewSession() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/new_session`, {
+                    method: 'POST',
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                currentSessionId = data.session_id;
+                localStorage.setItem('currentSessionId', currentSessionId);
+                document.getElementById('chatDisplay').innerHTML = ''; // Clear chat display
+                displayMessage('New session started!', 'ai');
+                
+                await loadAllSessions(); // Reload sessions in selector
+                document.getElementById('sessionSelect').value = currentSessionId; // Select new session
+            } catch (error) {
+                console.error('Error starting new session:', error);
+                displayMessage(`Error: Could not start new session. ${error.message}`, 'error');
+                // If new session fails, ensure local storage is clear so it doesn't try again
+                localStorage.removeItem('currentSessionId');
+                currentSessionId = null;
+            }
+        }
+
+        async function loadSession(sessionId) {
+            currentSessionId = sessionId;
+            localStorage.setItem('currentSessionId', currentSessionId);
+            const chatDisplay = document.getElementById('chatDisplay');
+            chatDisplay.innerHTML = ''; // Clear current chat
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/history/${sessionId}`);
+                
+                // --- MODIFIED ERROR HANDLING FOR 404 (STALE SESSION ID) ---
+                if (response.status === 404) {
+                    console.warn(`Session ID ${sessionId} not found on backend. Clearing local storage and starting a new session.`);
+                    localStorage.removeItem('currentSessionId'); // Clear the stale ID
+                    currentSessionId = null; // Reset local variable
+                    await startNewSession(); // Start a fresh session
+                    return; // Exit this function as new session handles display
+                }
+                // --- END MODIFIED ERROR HANDLING ---
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const history = await response.json();
+
+                if (history.length === 0) {
+                    displayMessage('Session loaded. No prior messages.', 'ai');
+                } else {
+                    history.forEach(msg => {
+                        displayMessage(msg.content, msg.type === 'human' ? 'user' : 'ai');
+                    });
+                }
+                chatDisplay.scrollTop = chatDisplay.scrollHeight;
+            } catch (error) {
+                console.error('Error loading session history:', error);
+                displayMessage(`Error: Could not load session history. ${error.message}`, 'error');
+                // Also handle general loading errors by trying a new session
+                localStorage.removeItem('currentSessionId');
+                currentSessionId = null;
+                await startNewSession();
+            }
+        }
+
+        async function loadAllSessions() {
+            const sessionSelect = document.getElementById('sessionSelect');
+            sessionSelect.innerHTML = ''; // Clear existing options
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/sessions`);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+                const sessionIds = await response.json();
+
+                if (sessionIds.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No sessions';
+                    sessionSelect.appendChild(option);
+                    return;
+                }
+
+                sessionIds.forEach(sessionId => {
+                    const option = document.createElement('option');
+                    option.value = sessionId;
+                    // Truncate session ID for display if too long
+                    option.textContent = `Session: ${sessionId.substring(0, 8)}...`; 
+                    if (sessionId === currentSessionId) {
+                        option.selected = true;
+                    }
+                    sessionSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading session list:', error);
+                // Display a simple message in the selector if sessions fail to load
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Error loading sessions';
+                sessionSelect.appendChild(option);
+            }
+        }
+    </script>
+</body>
+</html>
