@@ -1,20 +1,28 @@
 import os
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import List, Optional, Dict, Any # Added Dict, Any for type hints
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uuid
 import json
-from langchain_core.messages import HumanMessage, AIMessage, BaseMessage # <--- ADDED AIMessage and BaseMessage here!
+from datetime import datetime # Added datetime for default session name
+
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 
 # Import functions from your qa_agent and database modules
 from app.qa_agent import get_qa_agent
 from app.database import (
-    initialize_db, save_chat_history, load_chat_history, get_all_session_ids, delete_session_history
+    initialize_db,
+    save_chat_history,
+    load_chat_history,
+    get_all_sessions_metadata, # <--- MODIFIED: now returns metadata (id, name, created_at)
+    delete_session_history,
+    create_new_session,       # <--- NEW: to explicitly create a session
+    rename_session_in_db      # <--- NEW: to rename a session
 )
 
 # Define Pydantic models for request/response
@@ -25,10 +33,12 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     session_id: str
-    chat_history: List[dict] = [] # Include chat_history in response
+    chat_history: List[Dict[str, Any]] = [] # Changed to Dict[str, Any] for flexibility
 
-class SessionResponse(BaseModel):
-    session_id: str
+class SessionMetadata(BaseModel): # <--- MODIFIED Pydantic model for session data
+    id: str
+    name: str
+    created_at: datetime # Include creation timestamp
 
 # In-memory store for the LangGraph agent instance
 # This will be initialized once on startup
@@ -36,8 +46,9 @@ qa_agent_instance = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize the database on startup
-    initialize_db()
+    # Initialize the database on startup (redundant if app.database.initialize_db() is called on import,
+    # but good for explicit lifecycle management in FastAPI context)
+    initialize_db() 
     
     # Initialize the QA agent
     global qa_agent_instance
@@ -76,46 +87,70 @@ async def read_root():
     with open("static/index.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
-@app.post("/new_session", response_model=SessionResponse)
+@app.post("/new_session", response_model=SessionMetadata, status_code=status.HTTP_201_CREATED)
 async def new_session():
     """
-    Creates a new chat session and returns its ID.
+    Creates a new chat session with a default name and returns its ID and name.
     """
     session_id = str(uuid.uuid4())
-    # Optionally, you could initialize an empty history for the new session here
-    # save_chat_history(session_id, [])
-    print(f"New session created: {session_id}")
-    return {"session_id": session_id}
+    default_session_name = f"New Chat - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    
+    # Explicitly create the new session in the database
+    create_new_session(session_id, default_session_name)
+    
+    print(f"New session created: {session_id} with name '{default_session_name}'")
+    # Return the newly created session's metadata
+    # We fetch it again to ensure it reflects the DB state, including created_at
+    # For simplicity, let's just create a dummy SessionMetadata for return
+    return SessionMetadata(id=session_id, name=default_session_name, created_at=datetime.utcnow()) # Using utcnow as a placeholder, DB has exact time
 
-@app.get("/sessions", response_model=List[str])
+
+@app.get("/sessions", response_model=List[SessionMetadata])
 async def get_sessions():
     """
-    Returns a list of all active session IDs.
+    Returns a list of all active session IDs and their names.
     """
-    sessions = get_all_session_ids()
-    return sessions
+    sessions_data = get_all_sessions_metadata() # Call the new function
+    # The return value from get_all_sessions_metadata should match SessionMetadata fields
+    return [SessionMetadata(**s_data) for s_data in sessions_data] # Unpack dict into Pydantic model
 
-@app.get("/history/{session_id}", response_model=List[dict])
+
+@app.get("/history/{session_id}", response_model=List[Dict[str, Any]])
 async def get_history(session_id: str):
     """
     Loads and returns the chat history for a given session ID.
     """
     history = load_chat_history(session_id)
     if not history:
-        # If history is empty, return 200 OK with an empty list, not 404
-        # A 404 would typically be for a resource that doesn't exist *at all*
-        # But an empty history for a session is valid.
-        # If the session_id itself is truly non-existent in the DB, you might
-        # still want to raise 404, but for now, an empty list is sufficient.
         print(f"History requested for non-existent or empty session: {session_id}")
-        # Raising HTTPException(status_code=404) here if the session_id is genuinely not in your list
-        # of known session IDs from `get_all_session_ids()` might be more accurate if the UI needs it.
-        # For simplicity, returning an empty list might be handled gracefully by UI.
-        # For the previous 404, it was likely due to the ID not being found in DB from the `load_chat_history`.
-        # Ensure `load_chat_history` truly handles non-existent IDs gracefully by returning `[]`.
         return []
     print(f"History loaded for session: {session_id}, messages: {len(history)}")
     return history
+
+# New endpoint to rename a session
+class RenameSessionRequest(BaseModel):
+    new_name: str
+
+@app.put("/sessions/{session_id}/rename", response_model=SessionMetadata)
+async def rename_session(session_id: str, request: RenameSessionRequest):
+    """
+    Renames an existing chat session.
+    """
+    if not rename_session_in_db(session_id, request.new_name):
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found or rename failed.")
+    
+    # After successful rename, you might want to fetch the updated session metadata
+    # For simplicity, constructing it here. In production, fetch from DB for consistency.
+    # Get the current metadata to return the correct created_at
+    all_sessions = get_all_sessions_metadata()
+    current_session_meta = next((s for s in all_sessions if s['id'] == session_id), None)
+    
+    if current_session_meta:
+        return SessionMetadata(id=session_id, name=request.new_name, created_at=current_session_meta['created_at'])
+    else:
+        # Fallback if somehow not found after rename (shouldn't happen if rename_session_in_db worked)
+        raise HTTPException(status_code=500, detail="Failed to retrieve updated session metadata.")
+
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
@@ -126,14 +161,14 @@ async def chat(request: ChatRequest):
     if qa_agent_instance is None:
         raise HTTPException(status_code=503, detail="QA Agent not initialized.")
 
-    session_id = request.session_id if request.session_id else str(uuid.uuid4())
+    session_id = request.session_id
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required for /chat endpoint.")
     
     # Load existing chat history
     chat_history_messages = load_chat_history(session_id)
     
     # Ensure all messages are properly typed as BaseMessage if needed by LangGraph
-    # For now, assuming they are dicts from DB, LangGraph will convert them
-    # For simplicity, convert all history entries to HumanMessage/AIMessage objects
     formatted_chat_history = []
     for msg in chat_history_messages:
         if msg["type"] == "human":
@@ -155,24 +190,21 @@ async def chat(request: ChatRequest):
 
     try:
         # Invoke the LangGraph agent
-        # Use .ainvoke for async execution
         result = await qa_agent_instance.ainvoke(initial_state)
 
         # The final answer is in the 'chat_history' of the result, specifically the last AI message
         ai_response_message = None
         if result and "chat_history" in result and result["chat_history"]:
-            # Iterate backwards to find the last AIMessage
             for msg in reversed(result["chat_history"]):
                 if isinstance(msg, AIMessage):
                     ai_response_message = msg.content
                     break
         
         if not ai_response_message:
-            ai_response_message = "I couldn't process that request."
+            ai_response_message = "I couldn't process that request or find a clear answer."
             print("Warning: Agent did not return a valid AI message.")
 
         # Save updated chat history after processing
-        # Append user question and AI response to history before saving
         updated_history_for_db = chat_history_messages + [
             {"type": "human", "content": request.question},
             {"type": "ai", "content": ai_response_message}
@@ -186,19 +218,21 @@ async def chat(request: ChatRequest):
         )
     except Exception as e:
         print(f"Error during chat processing: {e}")
-        # Optionally, save the error message to history or log more details
+        # It's good practice to log the full traceback for debugging
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
 
-# Endpoint to delete session history (useful for development)
-@app.delete("/history/{session_id}")
-async def delete_history(session_id: str):
+# Endpoint to delete a specific session
+@app.delete("/sessions/{session_id}")
+async def delete_session(session_id: str):
     """
-    Deletes the chat history for a given session ID.
+    Deletes the chat session and its entire history for a given session ID.
     """
     if delete_session_history(session_id):
-        return {"message": f"Session {session_id} history deleted."}
-    raise HTTPException(status_code=404, detail=f"Session {session_id} not found.")
+        return {"message": f"Session '{session_id}' and its history deleted."}
+    raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
