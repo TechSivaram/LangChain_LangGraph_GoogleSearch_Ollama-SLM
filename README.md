@@ -179,6 +179,9 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## 📄 License
 
+<img width="1276" alt="image" src="https://github.com/user-attachments/assets/be05ceb0-0086-402c-bc49-91f52a501cfd" />
+
+
 This project is licensed under the MIT License - see the `LICENSE` file for details. (If you don't have one, consider adding a `LICENSE` file in your root directory).
 
 ## 📧 Contact
