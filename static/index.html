@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LangChain LangGraph Ollama Llama3 QA</title>
+    <title>Smart Q&A System</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body {
@@ -13,24 +13,129 @@
             height: 100vh;
             background-color: #f4f4f4;
             color: #333;
+            overflow: hidden; /* Prevent body scroll */
         }
+        .auth-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background-color: #e0e0e0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+        .auth-form {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 350px;
+            text-align: center;
+        }
+        .auth-form h2 {
+            margin-bottom: 25px;
+            color: #4CAF50;
+        }
+        .auth-form input[type="text"],
+        .auth-form input[type="password"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .auth-form button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        .auth-form button:hover {
+            background-color: #0056b3;
+        }
+        .auth-toggle {
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .auth-toggle a {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .auth-toggle a:hover {
+            text-decoration: underline;
+        }
+        #authMessage {
+            color: red;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        /* Styles for Sidebar Header */
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #555;
+        }
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.6em;
+            color: #4CAF50;
+            white-space: nowrap;
+        }
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+        #loggedInUser {
+            font-size: 0.85em;
+            color: #ccc;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+        #logoutBtn {
+            background-color: #dc3545;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            cursor: pointer;
+            border: none;
+            color: white;
+            white-space: nowrap;
+        }
+        #logoutBtn:hover {
+            background-color: #c82333;
+        }
+
+        /* Sidebar and Session List */
         .sidebar {
-            width: 280px; /* Slightly wider sidebar */
+            width: 280px;
             background-color: #333;
             color: white;
             padding: 20px;
             display: flex;
             flex-direction: column;
             box-shadow: 2px 0 5px rgba(0,0,0,0.2);
-            overflow-y: auto; /* Scroll for many sessions */
+            overflow-y: auto;
             flex-shrink: 0;
-        }
-        .sidebar h2 {
-            margin-top: 0;
-            margin-bottom: 25px;
-            color: #4CAF50; /* Green highlight for title */
-            font-size: 1.6em;
-            text-align: center;
         }
         .sidebar-button {
             width: 100%;
@@ -50,7 +155,7 @@
         .session-list {
             list-style: none;
             padding: 0;
-            flex-grow: 1; /* Allows list to take available space */
+            flex-grow: 1;
         }
         .session-item {
             display: flex;
@@ -62,14 +167,18 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.2s ease, transform 0.1s ease;
-            position: relative; /* For rename input positioning */
+            position: relative; /* Needed for dropdown positioning */
+            z-index: auto; /* Default z-index for list items */
         }
         .session-item:hover {
             background-color: #666;
             transform: translateX(3px);
         }
+        .session-item.active-dropdown { /* New class for active dropdown item */
+            z-index: 10; /* Bring the current item to the front */
+        }
         .session-item.active {
-            background-color: #4CAF50; /* Green for active session */
+            background-color: #4CAF50;
             font-weight: bold;
         }
         .session-name {
@@ -79,35 +188,55 @@
             text-overflow: ellipsis;
             padding-right: 5px;
         }
-        .session-actions {
-            display: flex;
-            gap: 5px;
+        
+        /* Kebab Menu Styles */
+        .kebab-menu {
+            position: relative;
+            display: inline-block;
+            margin-left: 10px; /* Space from session name */
         }
-        .session-action-btn {
+        .kebab-button {
             background: none;
             border: none;
             color: white;
+            font-size: 1.2em; /* Adjust size of the dots */
+            cursor: pointer;
+            padding: 0 5px;
+            line-height: 1; /* Align dots better vertically */
+        }
+        .kebab-button:hover {
+            color: #eee;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #444;
+            min-width: 120px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+            z-index: 100; /* Increased z-index significantly */
+            right: 0; /* Align dropdown to the right of the button */
+            border-radius: 5px;
+            overflow: hidden; /* For rounded corners on internal items */
+        }
+        .dropdown-content button {
+            color: white;
+            padding: 8px 12px;
+            text-decoration: none;
+            display: block;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
             cursor: pointer;
             font-size: 0.9em;
-            padding: 3px 5px;
-            border-radius: 3px;
             transition: background-color 0.2s ease;
+            border-radius: 0; /* No individual border radius */
         }
-        .session-action-btn:hover {
-            background-color: rgba(255,255,255,0.2);
+        .dropdown-content button:hover {
+            background-color: #666;
         }
-        .rename-input {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            padding: 5px 10px;
-            border: none;
-            background-color: #777;
-            color: white;
-            box-sizing: border-box;
-            border-radius: 5px;
+        .dropdown-content.show {
+            display: block;
         }
 
         .main-content {
@@ -115,6 +244,7 @@
             display: flex;
             flex-direction: column;
             padding: 20px;
+            overflow: hidden; /* Prevent chat container from pushing content */
         }
         .chat-header {
             display: flex;
@@ -134,36 +264,35 @@
             padding: 15px;
             margin-bottom: 20px;
             overflow-y: auto;
-            background-color: #fff; /* White background for chat area */
+            background-color: #fff;
             display: flex;
             flex-direction: column;
-            gap: 10px; /* Space between messages */
+            gap: 10px;
         }
         .message {
-            max-width: 70%; /* Adjust max-width */
+            max-width: 70%;
             padding: 10px 15px;
-            border-radius: 18px; /* More rounded corners */
+            border-radius: 18px;
             word-wrap: break-word;
         }
         .user-message {
-            background-color: #DCF8C6; /* Light green bubble */
-            align-self: flex-end; /* Align to the right */
+            background-color: #DCF8C6;
+            align-self: flex-end;
             text-align: right;
-            border-bottom-right-radius: 3px; /* Flatten bottom right for user */
+            border-bottom-right-radius: 3px;
         }
         .ai-message {
-            background-color: #E6E6E6; /* Light gray bubble */
-            align-self: flex-start; /* Align to the left */
+            background-color: #E6E6E6;
+            align-self: flex-start;
             text-align: left;
-            border-bottom-left-radius: 3px; /* Flatten bottom left for AI */
+            border-bottom-left-radius: 3px;
         }
-        /* Styling for markdown elements within AI messages */
         .ai-message pre {
             background-color: #eee;
             padding: 10px;
             border-radius: 5px;
-            overflow-x: auto; /* For long code lines */
-            white-space: pre-wrap; /* Ensure code wraps */
+            overflow-x: auto;
+            white-space: pre-wrap;
             word-break: break-all;
         }
         .ai-message code {
@@ -182,8 +311,6 @@
         .ai-message li {
             margin-bottom: 5px;
         }
-
-
         .input-area {
             display: flex;
             gap: 10px;
@@ -193,7 +320,7 @@
             flex-grow: 1;
             padding: 12px;
             border: 1px solid #ccc;
-            border-radius: 25px; /* Rounded input field */
+            border-radius: 25px;
             font-size: 1em;
             outline: none;
             transition: border-color 0.3s ease;
@@ -206,7 +333,7 @@
             background-color: #007bff;
             color: white;
             border: none;
-            border-radius: 25px; /* Rounded buttons */
+            border-radius: 25px;
             cursor: pointer;
             font-size: 1em;
             transition: background-color 0.3s ease;
@@ -219,32 +346,69 @@
             padding: 10px;
             font-style: italic;
             color: #555;
-            display: none; /* Hidden by default */
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <h2>Sessions</h2>
-        <button id="newChatBtn" class="sidebar-button">New Chat</button>
-        <ul id="sessionList" class="session-list">
-            </ul>
+    <div id="authContainer" class="auth-container">
+        <div class="auth-form">
+            <h2 id="authTitle">Login</h2>
+            <div id="authMessage" style="display: none;"></div>
+            <input type="text" id="usernameInput" placeholder="Username" autocomplete="username">
+            <input type="password" id="passwordInput" placeholder="Password" autocomplete="current-password">
+            <button id="authSubmitBtn">Login</button>
+            <div class="auth-toggle">
+                <p id="toggleText">Don't have an account? <a id="toggleAuthMode">Register</a></p>
+            </div>
+        </div>
     </div>
 
-    <div class="main-content">
-        <div class="chat-header">
-            <h1 id="currentSessionName">Select a Chat or Start a New One</h1>
-        </div>
-        <div class="chat-container" id="chatContainer">
+    <div id="mainApp" style="display: none; width: 100%; height: 100%;">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Sessions</h2>
+                <div class="user-info">
+                    <span id="loggedInUser"></span>
+                    <button id="logoutBtn">Logout</button>
+                </div>
             </div>
-        <div class="loading-indicator" id="loadingIndicator">Thinking...</div>
-        <div class="input-area">
-            <input type="text" id="questionInput" placeholder="Ask a question..." autocomplete="off">
-            <button id="sendBtn">Send</button>
+            <button id="newChatBtn" class="sidebar-button">New Chat</button>
+            <ul id="sessionList" class="session-list">
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-header">
+                <h1 id="currentSessionName">Select a Chat or Start a New One</h1>
+            </div>
+            <div class="chat-container" id="chatContainer">
+            </div>
+            <div class="loading-indicator" id="loadingIndicator">Thinking...</div>
+            <div class="input-area">
+                <input type="text" id="questionInput" placeholder="Ask a question..." autocomplete="off">
+                <button id="sendBtn">Send</button>
+            </div>
         </div>
     </div>
 
     <script>
+        // --- Authentication Elements ---
+        const authContainer = document.getElementById('authContainer');
+        const mainApp = document.getElementById('mainApp');
+        const authTitle = document.getElementById('authTitle');
+        const usernameInput = document.getElementById('usernameInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const authMessage = document.getElementById('authMessage');
+        const toggleAuthMode = document.getElementById('toggleAuthMode');
+        const toggleText = document.getElementById('toggleText');
+        const loggedInUserSpan = document.getElementById('loggedInUser');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        let isLoginMode = true; // State for login/register form
+
+        // --- Chat Interface Elements ---
         const newChatBtn = document.getElementById('newChatBtn');
         const sessionList = document.getElementById('sessionList');
         const currentSessionNameDisplay = document.getElementById('currentSessionName');
@@ -254,21 +418,159 @@
         const loadingIndicator = document.getElementById('loadingIndicator');
 
         let currentSessionId = null;
+        let accessToken = localStorage.getItem('access_token');
 
-        // --- Utility Functions ---
+        // --- Authentication Functions ---
+        function setAuthMessage(message, isError = true) {
+            authMessage.textContent = message;
+            authMessage.style.color = isError ? 'red' : 'green';
+            authMessage.style.display = 'block';
+        }
+
+        async function authenticateUser() {
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+            if (!username || !password) {
+                setAuthMessage("Username and password are required.");
+                return;
+            }
+
+            authSubmitBtn.disabled = true;
+            authMessage.style.display = 'none';
+
+            const endpoint = isLoginMode ? '/login' : '/register';
+            const method = 'POST';
+            let bodyData;
+
+            if (isLoginMode) {
+                // For login, use URLSearchParams for x-www-form-urlencoded
+                bodyData = new URLSearchParams();
+                bodyData.append('username', username);
+                bodyData.append('password', password);
+            } else {
+                // For registration, use JSON
+                bodyData = JSON.stringify({ username, password });
+            }
+
+            try {
+                const headers = {
+                    'Accept': 'application/json', // Always accept JSON response
+                };
+                if (!isLoginMode) { // Only set Content-Type for register (JSON)
+                    headers['Content-Type'] = 'application/json';
+                }
+
+                const response = await fetch(endpoint, {
+                    method: method,
+                    headers: headers,
+                    body: bodyData,
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (isLoginMode) {
+                        accessToken = data.access_token;
+                        localStorage.setItem('access_token', accessToken);
+                        setAuthMessage("Login successful!", false);
+                        await checkAuthStatus(); // Re-check and transition to main app
+                    } else {
+                        setAuthMessage("Registration successful! Please log in.", false);
+                        // Automatically switch to login mode after successful registration
+                        isLoginMode = true;
+                        authTitle.textContent = 'Login';
+                        authSubmitBtn.textContent = 'Login';
+                        toggleText.innerHTML = "Don't have an account? <a id='toggleAuthMode'>Register</a>";
+                        passwordInput.value = ''; // Clear password field
+                        usernameInput.focus();
+                    }
+                } else {
+                    setAuthMessage(data.detail || "Authentication failed.");
+                }
+            } catch (error) {
+                console.error('Authentication error:', error);
+                setAuthMessage("An error occurred during authentication.");
+            } finally {
+                authSubmitBtn.disabled = false;
+            }
+        }
+
+
+        async function checkAuthStatus() {
+            accessToken = localStorage.getItem('access_token');
+            if (accessToken) {
+                try {
+                    const response = await authenticatedFetch('/users/me/');
+                    if (response.ok) {
+                        const user = await response.json();
+                        loggedInUserSpan.textContent = `Logged in as: ${user.username}`;
+                        authContainer.style.display = 'none';
+                        mainApp.style.display = 'flex';
+                        await fetchSessions(); // Load sessions for the logged-in user
+                    } else {
+                        throw new Error("Token invalid or expired.");
+                    }
+                } catch (error) {
+                    console.error('Auth check failed:', error);
+                    logoutUser(); // Clear invalid token
+                }
+            } else {
+                authContainer.style.display = 'flex';
+                mainApp.style.display = 'none';
+            }
+        }
+
+        function logoutUser() {
+            accessToken = null;
+            localStorage.removeItem('access_token');
+            authContainer.style.display = 'flex';
+            mainApp.style.display = 'none';
+            clearChatDisplay();
+            currentSessionId = null;
+            sessionList.innerHTML = '';
+            loggedInUserSpan.textContent = '';
+            currentSessionNameDisplay.textContent = 'Select a Chat or Start a New One';
+            usernameInput.value = '';
+            passwordInput.value = '';
+            setAuthMessage("", false); // Clear any auth messages
+            isLoginMode = true; // Reset to login mode
+            authTitle.textContent = 'Login';
+            authSubmitBtn.textContent = 'Login';
+            toggleText.innerHTML = "Don't have an account? <a id='toggleAuthMode'>Register</a>";
+        }
+
+        // --- Authenticated Fetch Wrapper ---
+        async function authenticatedFetch(url, options = {}) {
+            if (!accessToken) {
+                logoutUser();
+                throw new Error("Not authenticated. Please log in.");
+            }
+            const headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${accessToken}`,
+            };
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) { // If token expires or is invalid
+                logoutUser();
+                alert("Your session has expired. Please log in again.");
+                throw new Error("Session expired.");
+            }
+            return response;
+        }
+
+        // --- Chat Functions (modified to use authenticatedFetch) ---
         function addMessage(sender, message) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message', sender === 'human' ? 'user-message' : 'ai-message');
             
             if (sender === 'ai') {
-                // Use marked.js to convert Markdown to HTML for AI messages
                 messageDiv.innerHTML = marked.parse(message);
             } else {
                 messageDiv.textContent = message;
             }
             
             chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight; // Auto-scroll to latest message
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
         function clearChatDisplay() {
@@ -277,31 +579,26 @@
 
         async function fetchSessions() {
             try {
-                const response = await fetch('/sessions');
+                const response = await authenticatedFetch('/sessions');
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const sessions = await response.json();
                 renderSessions(sessions);
-                // If no session is active, or if current session doesn't exist anymore,
-                // try to load the first available session.
                 if (!currentSessionId || !sessions.some(s => s.id === currentSessionId)) {
                     if (sessions.length > 0) {
-                        // Sort by created_at descending to get the newest session first
                         sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                         await loadSession(sessions[0].id, sessions[0].name);
                     } else {
-                        // If no sessions exist, create a new one automatically
                         await createNewSession();
                     }
                 }
             } catch (error) {
                 console.error('Error fetching sessions:', error);
-                alert('Failed to load sessions. Please check console.');
+                // No alert here, error handled by authenticatedFetch or checkAuthStatus
             }
         }
 
         function renderSessions(sessions) {
-            sessionList.innerHTML = ''; // Clear existing list
-            // Sort sessions by created_at in descending order (newest first) for display
+            sessionList.innerHTML = '';
             sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
             sessions.forEach(session => {
@@ -314,28 +611,43 @@
                 nameSpan.textContent = session.name;
                 li.appendChild(nameSpan);
 
-                const actionsDiv = document.createElement('div');
-                actionsDiv.classList.add('session-actions');
+                const kebabMenuDiv = document.createElement('div');
+                kebabMenuDiv.classList.add('kebab-menu');
+                
+                const kebabButton = document.createElement('button');
+                kebabButton.classList.add('kebab-button');
+                kebabButton.innerHTML = '&#x22EE;'; // Unicode for vertical ellipsis
+                kebabButton.onclick = (e) => {
+                    e.stopPropagation(); // Prevent loading session when clicking kebab
+                    toggleDropdown(kebabMenuDiv.querySelector('.dropdown-content'), li); // Pass li to toggleDropdown
+                };
+                kebabMenuDiv.appendChild(kebabButton);
+
+                const dropdownContent = document.createElement('div');
+                dropdownContent.classList.add('dropdown-content');
 
                 const renameBtn = document.createElement('button');
-                renameBtn.classList.add('session-action-btn');
                 renameBtn.textContent = 'Rename';
                 renameBtn.onclick = (e) => {
-                    e.stopPropagation(); // Prevent loading session on rename click
+                    e.stopPropagation();
                     promptRenameSession(session.id, session.name, li);
+                    dropdownContent.classList.remove('show'); // Hide dropdown after action
+                    li.classList.remove('active-dropdown'); // Remove active-dropdown class
                 };
-                actionsDiv.appendChild(renameBtn);
+                dropdownContent.appendChild(renameBtn);
 
                 const deleteBtn = document.createElement('button');
-                deleteBtn.classList.add('session-action-btn');
                 deleteBtn.textContent = 'Delete';
                 deleteBtn.onclick = (e) => {
-                    e.stopPropagation(); // Prevent loading session on delete click
+                    e.stopPropagation();
                     deleteSession(session.id, session.name);
+                    dropdownContent.classList.remove('show'); // Hide dropdown after action
+                    li.classList.remove('active-dropdown'); // Remove active-dropdown class
                 };
-                actionsDiv.appendChild(deleteBtn);
+                dropdownContent.appendChild(deleteBtn);
 
-                li.appendChild(actionsDiv);
+                kebabMenuDiv.appendChild(dropdownContent);
+                li.appendChild(kebabMenuDiv);
 
                 li.onclick = () => loadSession(session.id, session.name);
                 
@@ -346,23 +658,60 @@
             });
         }
 
+        // Toggle dropdown visibility and manage parent z-index
+        function toggleDropdown(dropdown, listItem) {
+            // Close any other open dropdowns and remove their active-dropdown class
+            document.querySelectorAll('.dropdown-content').forEach(d => {
+                if (d !== dropdown && d.classList.contains('show')) {
+                    d.classList.remove('show');
+                    d.closest('.session-item').classList.remove('active-dropdown');
+                }
+            });
+
+            dropdown.classList.toggle('show');
+            // Add/remove active-dropdown class on the parent listItem
+            if (dropdown.classList.contains('show')) {
+                listItem.classList.add('active-dropdown');
+            } else {
+                listItem.classList.remove('active-dropdown');
+            }
+        }
+
+        // Close dropdowns if clicked outside
+        window.onclick = function(event) {
+            // Check if the click was NOT on a kebab button or within a dropdown
+            if (!event.target.matches('.kebab-button') && !event.target.closest('.dropdown-content')) {
+                document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                    if (dropdown.classList.contains('show')) {
+                        dropdown.classList.remove('show');
+                        dropdown.closest('.session-item').classList.remove('active-dropdown'); // Remove class when closing
+                    }
+                });
+            }
+        }
+
         async function loadSession(sessionId, sessionName) {
-            if (currentSessionId === sessionId) return; // Don't reload if already active
+            if (currentSessionId === sessionId) return;
 
             currentSessionId = sessionId;
             currentSessionNameDisplay.textContent = sessionName;
-            clearChatDisplay(); // Clear old chat messages
+            clearChatDisplay();
 
-            // Update active state in sidebar
             document.querySelectorAll('.session-item').forEach(item => {
                 item.classList.remove('active');
+                // Ensure dropdowns are closed when switching sessions
+                const dropdown = item.querySelector('.dropdown-content');
+                if (dropdown && dropdown.classList.contains('show')) {
+                    dropdown.classList.remove('show');
+                    item.classList.remove('active-dropdown');
+                }
                 if (item.dataset.sessionId === sessionId) {
                     item.classList.add('active');
                 }
             });
 
             try {
-                const response = await fetch(`/history/${sessionId}`);
+                const response = await authenticatedFetch(`/history/${sessionId}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const history = await response.json();
                 history.forEach(msg => addMessage(msg.type, msg.content));
@@ -375,14 +724,14 @@
 
         async function createNewSession() {
             try {
-                const response = await fetch('/new_session', { method: 'POST' });
+                const response = await authenticatedFetch('/new_session', { method: 'POST' });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const newSession = await response.json();
-                await fetchSessions(); // Re-fetch all sessions to update the list
-                await loadSession(newSession.id, newSession.name); // Load the newly created session
+                await fetchSessions();
+                await loadSession(newSession.id, newSession.name);
             } catch (error) {
                 console.error('Error creating new session:', error);
-                alert('Failed to create new chat session.');
+                alert('Failed to create new chat session.'); // Alert here, authenticatedFetch should have handled 401
             }
         }
 
@@ -394,12 +743,12 @@
                 return;
             }
 
-            addMessage('human', question); // Display user's message immediately
+            addMessage('human', question);
             questionInput.value = '';
-            loadingIndicator.style.display = 'block'; // Show loading
+            loadingIndicator.style.display = 'block';
 
             try {
-                const response = await fetch('/chat', {
+                const response = await authenticatedFetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ question: question, session_id: currentSessionId }),
@@ -411,7 +760,6 @@
                 }
 
                 const data = await response.json();
-                // Clear and re-render history from response to ensure consistency
                 clearChatDisplay();
                 data.chat_history.forEach(msg => addMessage(msg.type, msg.content));
 
@@ -419,7 +767,7 @@
                 console.error('Error during chat:', error);
                 addMessage('ai', `Error: ${error.message}. Please check console for details.`);
             } finally {
-                loadingIndicator.style.display = 'none'; // Hide loading
+                loadingIndicator.style.display = 'none';
                 questionInput.focus();
             }
         }
@@ -427,11 +775,11 @@
         async function promptRenameSession(sessionId, currentName, listItemElement) {
             const newName = prompt(`Rename session "${currentName}":`, currentName);
             if (newName === null || newName.trim() === '' || newName === currentName) {
-                return; // User cancelled or entered empty/same name
+                return;
             }
 
             try {
-                const response = await fetch(`/sessions/${sessionId}/rename`, {
+                const response = await authenticatedFetch(`/sessions/${sessionId}/rename`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ new_name: newName.trim() }),
@@ -447,7 +795,6 @@
                 if (currentSessionId === sessionId) {
                     currentSessionNameDisplay.textContent = updatedSession.name;
                 }
-                // No alert, as UI updates directly
             } catch (error) {
                 console.error('Error renaming session:', error);
                 alert(`Failed to rename session: ${error.message}`);
@@ -460,20 +807,18 @@
             }
 
             try {
-                const response = await fetch(`/sessions/${sessionId}`, { method: 'DELETE' });
+                const response = await authenticatedFetch(`/sessions/${sessionId}`, { method: 'DELETE' });
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
                 }
                 
-                // alert(`Session "${sessionName}" deleted successfully.`); // No alert, UI updates
-                // If the deleted session was the current one, clear chat and current session
                 if (currentSessionId === sessionId) {
                     currentSessionId = null;
                     currentSessionNameDisplay.textContent = 'Select a Chat or Start a New One';
                     clearChatDisplay();
                 }
-                await fetchSessions(); // Re-fetch sessions to update the sidebar
+                await fetchSessions();
 
             } catch (error) {
                 console.error('Error deleting session:', error);
@@ -482,6 +827,28 @@
         }
 
         // --- Event Listeners ---
+        authSubmitBtn.addEventListener('click', authenticateUser);
+        toggleAuthMode.addEventListener('click', (event) => {
+            event.preventDefault(); // Prevent default link behavior
+            isLoginMode = !isLoginMode;
+            authTitle.textContent = isLoginMode ? 'Login' : 'Register';
+            authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Register';
+            toggleText.innerHTML = isLoginMode ? "Don't have an account? <a id='toggleAuthMode'>Register</a>" : "Already have an account? <a id='toggleAuthMode'>Login</a>";
+            // Re-attach event listener to the new <a> tag
+            document.getElementById('toggleAuthMode').addEventListener('click', (e) => {
+                e.preventDefault();
+                isLoginMode = !isLoginMode;
+                authTitle.textContent = isLoginMode ? 'Login' : 'Register';
+                authSubmitBtn.textContent = isLoginMode ? 'Login' : 'Register';
+                toggleText.innerHTML = isLoginMode ? "Don't have an account? <a id='toggleAuthMode'>Register</a>" : "Already have an account? <a id='toggleAuthMode'>Login</a>";
+            });
+            usernameInput.value = '';
+            passwordInput.value = '';
+            authMessage.style.display = 'none';
+            usernameInput.focus();
+        });
+        
+        logoutBtn.addEventListener('click', logoutUser);
         newChatBtn.addEventListener('click', createNewSession);
         sendBtn.addEventListener('click', sendMessage);
         questionInput.addEventListener('keypress', (event) => {
@@ -491,17 +858,7 @@
         });
 
         // --- Initial Load ---
-        document.addEventListener('DOMContentLoaded', fetchSessions);
-
-        // --- Marked.js Configuration (Optional but good for security) ---
-        // Marked.js can render HTML content from Markdown. If your AI model
-        // might output malicious HTML, you might want to sanitize it.
-        // For basic use, the default is often fine.
-        // For more secure applications, consider:
-        // marked.use({
-        //   mangle: false,
-        //   headerIds: false
-        // });
+        document.addEventListener('DOMContentLoaded', checkAuthStatus);
     </script>
 </body>
 </html>

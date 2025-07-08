@@ -1,3 +1,4 @@
+# app/qa_agent.py
 import os
 from dotenv import load_dotenv
 from langchain_google_community import GoogleSearchAPIWrapper
@@ -215,9 +216,7 @@ def get_qa_agent():
     workflow.add_node("refine_answer_with_research", lambda state: refine_answer_with_research(state, llm))
 
     workflow.set_entry_point("call_slm_initial")
-    # --- THIS IS THE CRUCIAL MISSING LINE ADDED TO CONNECT THE ENTRY POINT! ---
     workflow.add_edge("call_slm_initial", "decide_to_research")
-    # -------------------------------------------------------------------------
 
     workflow.add_conditional_edges(
         "decide_to_research",
