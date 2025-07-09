@@ -199,7 +199,7 @@
             cursor: pointer;
             font-size: 1.05em;
             font-weight: 500;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
             box-shadow: 0 2px 5px var(--shadow-light); /* Subtle shadow */
         }
         .sidebar-button:hover {
@@ -377,7 +377,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            display: none; /* Hide timestamp in right chat header */
+            display: block; /* Changed from none to block to make it visible */
         }
 
 
@@ -772,7 +772,7 @@
             sessionList.innerHTML = '';
             loggedInUserSpan.textContent = '';
             currentSessionNameDisplay.textContent = 'Select a Chat or Start a New One';
-            // currentSessionTimestampDisplay.textContent = ''; // Removed: Clear timestamp
+            currentSessionTimestampDisplay.textContent = ''; // Clear timestamp
             usernameInput.value = '';
             passwordInput.value = '';
             setAuthMessage("", false); // Clear any auth messages
@@ -837,14 +837,14 @@
                 if (!currentSessionId || !sessions.some(s => s.id === currentSessionId)) {
                     if (sessions.length > 0) {
                         sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                        // No timestamp passed to loadSession as it's not displayed in header
-                        await loadSession(sessions[0].id, sessions[0].name); 
+                        await loadSession(sessions[0].id, sessions[0].name, sessions[0].created_at); 
                     } else {
                         // If no sessions exist, create a new one automatically
                         await createNewSession(); 
                     }
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 console.error('Error fetching sessions:', error);
                 // No alert here, error handled by authenticatedFetch or checkAuthStatus
             }
@@ -924,7 +924,7 @@
                 li.appendChild(timestampSpan);
 
 
-                li.onclick = () => loadSession(session.id, session.name);
+                li.onclick = () => loadSession(session.id, session.name, session.created_at);
                 
                 if (session.id === currentSessionId) {
                     li.classList.add('active');
@@ -967,12 +967,12 @@
             }
         }
 
-        async function loadSession(sessionId, sessionName) { // Removed sessionTimestamp parameter
+        async function loadSession(sessionId, sessionName, sessionTimestamp) { 
             if (currentSessionId === sessionId) return;
 
             currentSessionId = sessionId;
             currentSessionNameDisplay.textContent = sessionName;
-            // currentSessionTimestampDisplay.textContent = formatTimestamp(sessionTimestamp); // Removed: Set timestamp
+            currentSessionTimestampDisplay.textContent = formatTimestamp(sessionTimestamp); 
             clearChatDisplay();
 
             document.querySelectorAll('.session-item').forEach(item => {
@@ -1007,7 +1007,7 @@
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const newSession = await response.json();
                 await fetchSessions();
-                await loadSession(newSession.id, newSession.name); // No timestamp
+                await loadSession(newSession.id, newSession.name, newSession.created_at);
             } catch (error) {
                 console.error('Error creating new session:', error);
                 alert('Failed to create new chat session.'); // Alert here, authenticatedFetch should have handled 401
@@ -1083,7 +1083,7 @@
                 }
                 if (currentSessionId === sessionId) {
                     currentSessionNameDisplay.textContent = updatedSession.name;
-                    // currentSessionTimestampDisplay.textContent = formatTimestamp(updatedSession.created_at); // Removed: Update right panel timestamp
+                    currentSessionTimestampDisplay.textContent = formatTimestamp(updatedSession.created_at); // Update right panel timestamp
                 }
             } catch (error) {
                 console.error('Error renaming session:', error);
@@ -1107,7 +1107,7 @@
                 if (currentSessionId === sessionId) {
                     currentSessionId = null;
                     currentSessionNameDisplay.textContent = 'Select a Chat or Start a New One';
-                    // currentSessionTimestampDisplay.textContent = ''; // Removed: Clear timestamp
+                    currentSessionTimestampDisplay.textContent = ''; // Clear timestamp
                     clearChatDisplay();
                 }
                 await fetchSessions(); // Re-fetch sessions to update the sidebar
